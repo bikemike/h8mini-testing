@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include "gd32f1x0.h"
 #include "drv_time.h"
 #include "macros.h"
+#include "hardware.h"
 #include "led.h"
 
 #define LEDALL 15

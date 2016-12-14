@@ -153,8 +153,8 @@
 #define SPI_SS_PIN       GPIO_PIN_4
 #define SPI_SS_PORT      GPIOA
 
-#define SPI_CE_PIN       GPIO_PIN_1
-#define SPI_CE_PORT      GPIOF
+#define RADIO_CE_PIN       GPIO_PIN_1
+#define RADIO_CE_PORT      GPIOF
 
 // check for radio chip ( 3 times flash = not found)
 #define RADIO_CHECK

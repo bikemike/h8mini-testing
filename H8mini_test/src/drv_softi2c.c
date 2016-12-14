@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include "macros.h"
 //#include "drv_spi.h"
 #include "drv_softi2c.h"
-
+#include "hardware.h"
 //#define i2cdebug
 
 void delay(int);
@@ -69,8 +69,8 @@ void sdalow()
 	if (!sdaout)
 		setoutput();
 
-//      GPIO_WriteBit(GPIOB, GPIO_PIN_7, Bit_RESET);
-	GPIOB->BCR = GPIO_PIN_7;
+//      GPIO_WriteBit(SOFTI2C_SDAPORT, SOFTI2C_SDAPIN, Bit_RESET);
+	SOFTI2C_SDAPORT->BCR = SOFTI2C_SDAPIN;
 	sda = 0;
 	_delay;
 }
@@ -80,8 +80,8 @@ void sdahigh()
 {
 	if (!sdaout)
 		setoutput();
-	//GPIO_WriteBit(GPIOB, GPIO_PIN_7, Bit_SET);
-	GPIOB->BOR = GPIO_PIN_7;
+	//GPIO_WriteBit(SOFTI2C_SDAPORT, SOFTI2C_SDAPIN, Bit_SET);
+	SOFTI2C_SDAPORT->BOR = SOFTI2C_SDAPIN;
 	_delay;
 	sda = 1;
 }
@@ -89,26 +89,26 @@ void sdahigh()
 
 void scllow()
 {
-// GPIO_WriteBit(GPIOB, GPIO_PIN_6, Bit_RESET);
-	GPIOB->BCR = GPIO_PIN_6;
+// GPIO_WriteBit(SOFTI2C_SCLPORT, SOFTI2C_SCLPIN, Bit_RESET);
+	SOFTI2C_SCLPORT->BCR = SOFTI2C_SCLPIN;
 	_delay;
 	scl = 0;
 }
 
 void sclhigh()
 {
-	//GPIO_WriteBit(GPIOB, GPIO_PIN_6, Bit_SET);
-	GPIOB->BOR = GPIO_PIN_6;
+	//GPIO_WriteBit(SOFTI2C_SCLPORT, SOFTI2C_SCLPIN, Bit_SET);
+	SOFTI2C_SCLPORT->BOR = SOFTI2C_SCLPIN;
 	_delay;
 	scl = 1;
 }
 
 void sclhighlow()
 {
-	//GPIO_WriteBit(GPIOB, GPIO_PIN_6, Bit_SET);
-	GPIOB->BOR = GPIO_PIN_6;
+	//GPIO_WriteBit(SOFTI2C_SCLPORT, SOFTI2C_SCLPIN, Bit_SET);
+	SOFTI2C_SCLPORT->BOR = SOFTI2C_SCLPIN;
 	_delay;
-	GPIOB->BCR = GPIO_PIN_6;
+	SOFTI2C_SCLPORT->BCR = SOFTI2C_SCLPIN;
 	_delay;
 	scl = 0;
 }
@@ -141,7 +141,7 @@ int _readsda()
 #endif
 	if (sdaout)
 		setinput();
-	return (Bit_SET == GPIO_ReadInputBit(GPIOB, GPIO_PIN_7));
+	return (Bit_SET == GPIO_ReadInputBit(SOFTI2C_SDAPORT, SOFTI2C_SDAPIN));
 }
 
 
@@ -367,18 +367,18 @@ void softi2c_init()
 	GPIO_InitPara GPIO_InitStructure;
 
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_PIN_6;
+	GPIO_InitStructure.GPIO_Pin = SOFTI2C_SCLPIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_MODE_OUT;
 	GPIO_InitStructure.GPIO_Speed = GPIO_SPEED_50MHZ;
 	GPIO_InitStructure.GPIO_OType = GPIO_OTYPE_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PUPD_PULLUP;
 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(SOFTI2C_SCLPORT, &GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_PIN_7;
+	GPIO_InitStructure.GPIO_Pin = SOFTI2C_SDAPIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_MODE_OUT;
 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(SOFTI2C_SDAPORT, &GPIO_InitStructure);
 
 	sdaout = 1;
 	sda = 0;
