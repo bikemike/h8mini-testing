@@ -35,6 +35,24 @@ THE SOFTWARE.
 
 #define WAITFORSTOP
 
+#ifndef HW_I2C_PINS_PA910
+#ifndef HW_I2C_PINS_PB67
+#define HW_I2C_PINS_PB67
+#endif
+#endif
+
+
+#ifdef HW_I2C_PINS_PB67
+#define I2C_SLC_PIN  GPIO_PIN_6
+#define I2C_SDA_PIN  GPIO_PIN_7
+#define I2C_PORT     GPIOB
+#else
+#define I2C_SLC_PIN  GPIO_PIN_9
+#define I2C_SDA_PIN  GPIO_PIN_10
+#define I2C_PORT     GPIOA
+#endif
+
+
 void i2c_init(void)
 {
 
@@ -45,29 +63,29 @@ void i2c_init(void)
 	GPIO_InitPara GPIO_InitStructure;
 
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_PIN_6 | GPIO_PIN_7;
+	GPIO_InitStructure.GPIO_Pin = I2C_SLC_PIN | I2C_SDA_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_MODE_IN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_SPEED_50MHZ;
 	GPIO_InitStructure.GPIO_OType = GPIO_OTYPE_OD;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PUPD_PULLUP;
 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(I2C_PORT, &GPIO_InitStructure);
 	// the following checks deal with issues arrising from i2c being stopped while the gyro is sending data
 	// this happens mainly in debug mode and perhaps at low voltage reset
 	int i2cfail = 0;
 	// sda is set with pullup
 	// if sda is low the gyro might have become stuck while waiting for clock(and is sending a "zero")
-	if (Bit_RESET == GPIO_ReadInputBit(GPIOB, GPIO_PIN_7))
+	if (Bit_RESET == GPIO_ReadInputBit(I2C_PORT, I2C_SDA_PIN))
 	  {
 		  i2cfail = 1;
 	  }
 	delay(10);
-	GPIO_InitStructure.GPIO_Pin = GPIO_PIN_7;
+	GPIO_InitStructure.GPIO_Pin = I2C_SDA_PIN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PUPD_PULLDOWN;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(I2C_PORT, &GPIO_InitStructure);
 	// sda is set with pulldown
 	// if sda is high it could be because the gyro is stuck sending data
-	if (Bit_SET == GPIO_ReadInputBit(GPIOB, GPIO_PIN_7))
+	if (Bit_SET == GPIO_ReadInputBit(I2C_PORT, I2C_SDA_PIN))
 	  {
 		  i2cfail = 1;
 	  }
@@ -76,22 +94,22 @@ void i2c_init(void)
 	  {
 
 		  // set sda pullup so it sends an ack
-		  GPIO_InitStructure.GPIO_Pin = GPIO_PIN_7;
+		  GPIO_InitStructure.GPIO_Pin = I2C_SDA_PIN;
 		  GPIO_InitStructure.GPIO_PuPd = GPIO_PUPD_PULLUP;
-		  GPIO_Init(GPIOB, &GPIO_InitStructure);
+		  GPIO_Init(I2C_PORT, &GPIO_InitStructure);
 
-		  GPIO_InitStructure.GPIO_Pin = GPIO_PIN_6;
+		  GPIO_InitStructure.GPIO_Pin = I2C_SLC_PIN;
 		  GPIO_InitStructure.GPIO_Mode = GPIO_MODE_OUT;
 		  GPIO_InitStructure.GPIO_PuPd = GPIO_PUPD_PULLUP;
-		  GPIO_Init(GPIOB, &GPIO_InitStructure);
+		  GPIO_Init(I2C_PORT, &GPIO_InitStructure);
 		  delay(10);
 		  for (int i = 0; i < 18; i++)
 		    {		// send 9 clock pulses on scl to clear any pending byte
-			    GPIO_WriteBit(GPIOB, GPIO_PIN_6, Bit_RESET);
+			    GPIO_WriteBit(I2C_PORT, I2C_SLC_PIN, Bit_RESET);
 			    delay(25);
-			    GPIO_WriteBit(GPIOB, GPIO_PIN_6, Bit_SET);
+			    GPIO_WriteBit(I2C_PORT, I2C_SLC_PIN, Bit_SET);
 			    delay(5);
-			    if (Bit_RESET != GPIO_ReadInputBit(GPIOB, GPIO_PIN_7))
+			    if (Bit_RESET != GPIO_ReadInputBit(I2C_PORT, I2C_SDA_PIN))
 			      {
 				      break;
 			      }
@@ -100,16 +118,16 @@ void i2c_init(void)
 	  }
 
 	// actual i2c setup
-	GPIO_InitStructure.GPIO_Pin = GPIO_PIN_6 | GPIO_PIN_7;
+	GPIO_InitStructure.GPIO_Pin = I2C_SLC_PIN | I2C_SDA_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_MODE_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_SPEED_50MHZ;
 	GPIO_InitStructure.GPIO_OType = GPIO_OTYPE_OD;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PUPD_PULLUP;
 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(I2C_PORT, &GPIO_InitStructure);
 
-	GPIO_PinAFConfig(GPIOB, GPIO_PINSOURCE6, GPIO_AF_1);
-	GPIO_PinAFConfig(GPIOB, GPIO_PINSOURCE7, GPIO_AF_1);
+	GPIO_PinAFConfig(I2C_PORT, GPIO_PINSOURCE6, GPIO_AF_1);
+	GPIO_PinAFConfig(I2C_PORT, GPIO_PINSOURCE7, GPIO_AF_1);
 
 	I2C_InitPara I2C_InitStructure;
 	I2C_InitStructure.I2C_Protocol = I2C_PROTOCOL_I2C;

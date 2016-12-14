@@ -95,16 +95,26 @@ extern void imu_init(void);
 
 int main(void)
 {
+	delay(1000);
+
 
 	clk_init();
 
+	delay(1000);
+
 	gpio_init();
+
+	delay(1000);
+
+
+	failloop(5);
 
 #ifdef SERIAL
 	serial_init();
 #endif
 
 	i2c_init();
+
 
 	spi_init();
 
