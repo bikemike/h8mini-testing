@@ -2,6 +2,7 @@
 
 void xn_writerxaddress(  int *addr )	;
 void xn_writereg( int reg , int val);
+void xn_writereg_multi( int reg , int* bytes, int size);
 int xn_command( int command);
 int xn_readreg( int reg);
 void _spi_write_address( int reg, int val);
@@ -35,6 +36,8 @@ void xn_writetxaddress(  int *addr )	;
 #define RX_PW_P4    0x15
 #define RX_PW_P5    0x16
 #define FIFO_STATUS 0x17
+#define DYNPD       0x1C
+#define FEATURE     0x1D
 
 // bit masks
 #define MASK_RX_DR  6

@@ -41,6 +41,11 @@ void gpio_init(void)
 #endif
 #endif
 
+#ifdef RADIO_CE_PIN
+	GPIO_InitStructure.GPIO_Pin = RADIO_CE_PIN;
+	GPIO_Init(RADIO_CE_PORT, &GPIO_InitStructure);
+#endif
+
 
 #if ( AUX_LED_NUMBER > 0 )
   GPIO_InitStructure.GPIO_Pin = AUX_LED1PIN;	

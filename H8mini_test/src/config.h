@@ -47,12 +47,8 @@
 // The BMI055 used on the FY530 has the following HW GYRO filter settings (Bandwidth) 523Hz/230Hz/116Hz/64Hz/47Hz/32Hz/23Hz/12Hz
 #define GYRO_LOW_PASS_FILTER_BMI055 BMI055_BW_47HZ
 // BMI055 has seperate acc filter control. Bandwidths 1000Hz/500Hz/250Hz/125Hz/63Hz/31Hz/16Hz/8Hz
-#define ACC_LOW_PASS_FILTER_BMI055 BMI055_PMU_BW_31HZ
+#define ACC_LOW_PASS_FILTER_BMI055 BMI055_PMU_BW_63HZ
 
-
-#define ADDRESS_6XXX       0x68
-#define BMI055_ACC_ADDRESS 0x18  // 0x18 or 0x19
-#define BMI055_GYR_ADDRESS 0x68  // 0x68 or 0x69
 
 // Hardware gyro LPF filter frequency
 // gyro filter 0 = 250hz delay 0.97mS
@@ -245,7 +241,8 @@
 #define TX_POWER_TELEMETRY 3
 
 // rx protocol selection
-#define RX_BAYANG_TELEMETRY
+#define RX_FQ777_124
+//#define RX_BAYANG_TELEMETRY
 //#define RX_BAYANG_BLE
 //#define RX_BAYANG_BLE_APP
 
@@ -283,7 +280,7 @@
 #define ENABLESTIX_TRESHOLD 0.3
 
 // old calibration flash
-#define OLD_LED_FLASH
+//#define OLD_LED_FLASH
 
 // limit minimum motor output to a value (0.0 - 1.0)
 //#define MOTOR_MIN_ENABLE

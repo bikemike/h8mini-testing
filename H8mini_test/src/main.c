@@ -240,7 +240,7 @@ int main(void)
 			    // endless loop
 		    }
 
-		  sixaxis_read();
+		  sixaxis_read(SIXAXIS_GYRO_AND_ACCEL);
 
 		  control();
 

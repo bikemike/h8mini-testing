@@ -40,6 +40,9 @@ THE SOFTWARE.
 
 // ACC range
 #define BMI055_PMU_RANGE           0x0f
+#define BMI055_PMU_RANGE_2G				0x03
+#define BMI055_PMU_RANGE_4G				0x05
+#define BMI055_PMU_RANGE_8G				0x08
 #define BMI055_PMU_RANGE_16G				0x0c
 
 // GYR range

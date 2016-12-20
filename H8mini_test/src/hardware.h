@@ -18,6 +18,12 @@
 // to disable led pins set number to zero
 
 
+//#define IMU_6XXX //(mpu-6050 etc)
+#define IMU_BMI055
+#define ADDRESS_6XXX       0x68
+#define BMI055_ACC_ADDRESS 0x19  // 0x18 or 0x19
+#define BMI055_GYR_ADDRESS 0x69  // 0x68 or 0x69
+
 
 // always on pin ( for vreg if present)
 // used by cx-10 boards and other quads with switches

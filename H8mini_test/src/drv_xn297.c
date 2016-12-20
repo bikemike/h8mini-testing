@@ -19,6 +19,16 @@ void xn_writereg(int reg, int val)
 	spi_sendbyte(val);
 	spi_csoff();
 }
+void xn_writereg_multi(int reg, int* bytes, int size)
+{
+	reg = reg & 0x0000003F;
+	reg = reg | 0x00000020;
+	spi_cson();
+	spi_sendbyte(reg);
+	for (int i = 0; i < size; ++i)
+		spi_sendbyte(bytes[i]);
+	spi_csoff();
+}
 
 int xn_readreg(int reg)
 {
