@@ -645,9 +645,19 @@
               <FilePath>.\src\drv_gpio.c</FilePath>
             </File>
             <File>
+              <FileName>drv_esc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\drv_esc.c</FilePath>
+            </File>
+            <File>
               <FileName>drv_pwm.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\drv_pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_dshot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\drv_dshot.c</FilePath>
             </File>
             <File>
               <FileName>drv_serial.c</FileName>
@@ -688,6 +698,11 @@
               <FileName>drv_rgb.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\drv_rgb.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_servo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\drv_servo.c</FilePath>
             </File>
           </Files>
         </Group>

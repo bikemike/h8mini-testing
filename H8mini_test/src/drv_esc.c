@@ -1,39 +1,102 @@
-#include <gd32f1x0.h>
 
-#include "drv_pwm.h"
+
 
 //  ESC DRIVER FOR H8 MINI BOARD (GREEN)
 
 
- TIMER_OCInitPara  TIM_OCInitStructure;
 
 
-#define ESC_MIN 1020
-#define ESC_MAX 2000
+
+#define ESC_MIN 1200
+#define ESC_MAX 1800
+
 #define ESC_THROTTLEOFF 900
+
+// zero = no signal
+#define ESC_FAILSAFE 0
+
+// output polarity ( low - motor output with pullup resistor (500 ohms or near) )
+// enable for motor output after fets 
+#define INVERTED_PWM
+
+// 50 - 500 Hz range
+#define ESC_FREQ 500
+
+// enable preload - less noise in esc output but longer latency
+#define PRELOAD_ENABLE
+
+
+//#define ONESHOT_125_ENABLE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// do not change below
+
+#define TIMER_PRESCALER 16
+
+#ifndef SYS_CLOCK_FREQ_HZ
+#define SYS_CLOCK_FREQ_HZ 48000000
+#endif
+
+
+// max pulse width in microseconds (auto calculated)
+#define ESC_uS ((float)1000000.0f/(float)ESC_FREQ)
+
+#define PWMTOP ((SYS_CLOCK_FREQ_HZ/(TIMER_PRESCALER) / ESC_FREQ ) - 1)
+
+#define PWMTOP_US ( (float)1000000.0f/((SYS_CLOCK_FREQ_HZ/(TIMER_PRESCALER))/(PWMTOP + 1))  )
+
+
+#if ( PWMTOP > 65535 )
+#error "pwmtop too high"
+#endif
+
 
 // output polarity ( low - motor output with pullup resistor (500 ohms or near) )
 // choice of TIMER_OC_POLARITY_LOW / TIMER_OC_POLARITY_HIGH
+#ifdef INVERTED_PWM
+// for motor output after fets
 #define OUT_POLARITY TIMER_OC_POLARITY_LOW
+#else
+// for output before fets
+#define OUT_POLARITY TIMER_OC_POLARITY_HIGH
+#endif
 
-//333 hz - 3000 ms 
-#define PWMTOP 24576
-#define PWMTOP_MS 3000
+#ifdef PRELOAD_ENABLE
+// enable preload
+#define ESC_PRELOAD TIMER_OC_PRELOAD_ENABLE
+#else
+// disable preload
+#define ESC_PRELOAD TIMER_OC_PRELOAD_DISABLE
+#endif
 
-// 490Hz
-//#define PWMTOP 16383 
 
-// 1Khz
-//#define PWMTOP 8191
+#include <gd32f1x0.h>
+#include <math.h>
 
-// 2Khz
-//#define PWMTOP 4095
+#include "drv_pwm.h"
+#include "drv_time.h"
+#include "util.h"
+#include "config.h"
+#include "hardware.h"
 
-// 8Khz
-//#define PWMTOP 1023
+#ifdef USE_ESC_DRIVER
 
-// 2000ms = 16384
-// 
+ TIMER_OCInitPara  TIM_OCInitStructure;
+
 
 void pwm_init(void)
 {
@@ -66,7 +129,7 @@ void pwm_init(void)
 
 // TIMER3 for pins A8 A9 A10
 
-    TIM_TimeBaseStructure.TIMER_Prescaler = 5;  //
+    TIM_TimeBaseStructure.TIMER_Prescaler = TIMER_PRESCALER - 1;  //
     TIM_TimeBaseStructure.TIMER_CounterMode = TIMER_COUNTER_UP;
     TIM_TimeBaseStructure.TIMER_Period = PWMTOP;
     TIM_TimeBaseStructure.TIMER_ClockDivision = TIMER_CDIV_DIV1;
@@ -82,7 +145,7 @@ void pwm_init(void)
     TIM_OCInitStructure.TIMER_Pulse = 0;
     TIMER_OC4_Init(TIMER3, &TIM_OCInitStructure);
 
-		TIMER_CtrlPWMOutputs(TIMER3,ENABLE);
+	TIMER_CtrlPWMOutputs(TIMER3,ENABLE);
 
     TIMER_CARLPreloadConfig(TIMER3,ENABLE);
 
@@ -96,71 +159,86 @@ void pwm_init(void)
 
     TIMER_OC3_Init(TIMER1, &TIM_OCInitStructure);
 		
-		TIMER_CtrlPWMOutputs(TIMER1,ENABLE);	
+	TIMER_CtrlPWMOutputs(TIMER1,ENABLE);	
 		
     TIMER_CARLPreloadConfig(TIMER1,ENABLE);
 
-	TIMER_OC1_Preload(TIMER1,TIMER_OC_PRELOAD_DISABLE);
-	TIMER_OC2_Preload(TIMER1,TIMER_OC_PRELOAD_DISABLE);
-	TIMER_OC3_Preload(TIMER1,TIMER_OC_PRELOAD_DISABLE);
-	TIMER_OC4_Preload(TIMER3,TIMER_OC_PRELOAD_DISABLE);
+	TIMER_OC1_Preload(TIMER1,ESC_PRELOAD);
+	TIMER_OC2_Preload(TIMER1,ESC_PRELOAD);
+	TIMER_OC3_Preload(TIMER1,ESC_PRELOAD);
+	TIMER_OC4_Preload(TIMER3,ESC_PRELOAD);
 	
   TIMER_Enable( TIMER1, ENABLE );
 }
 
-#include <math.h>
-#include "util.h"
 
-float debugpwm[4];
+
 extern int onground;
+extern int failsafe;
+unsigned long pwm_failsafe_time = 1;
 
 void pwm_set( uint8_t number , float pwm)
 {
-// change to ms
-//	pwm = pwm * 2000; // max pwm value
 
 	if ( pwm < 0 ) pwm = 0;
 	
-	debugpwm[number] = mapf ( pwm , 0 , 1 ,  (float) ESC_MIN ,  (float) ESC_MAX ) ;
-	
-	pwm = mapf ( pwm , 0 , 1 , ( (float) PWMTOP/PWMTOP_MS)*ESC_MIN , ( (float) PWMTOP/PWMTOP_MS)*ESC_MAX ); 
+	pwm = mapf ( pwm , 0 , 1 , ( (float) PWMTOP/PWMTOP_US)*ESC_MIN , ( (float) PWMTOP/PWMTOP_US)*ESC_MAX ); 
 
-if ( onground ) pwm = ((float)PWMTOP/PWMTOP_MS) * ESC_THROTTLEOFF;
+if ( onground ) pwm = ((float)PWMTOP/PWMTOP_US) * ESC_THROTTLEOFF;
+	
+	if ( failsafe ) 
+	{
+		if ( !pwm_failsafe_time )
+		{
+			pwm_failsafe_time = gettime();
+		}
+		else
+		{
+			// 100mS after failsafe we turn off the signal (for safety while flashing)
+			if ( gettime() - pwm_failsafe_time > 100000 )
+			{
+				pwm = ((float)PWMTOP/PWMTOP_US) * ESC_FAILSAFE;
+			}
+		}
+		
+	}
+	else
+	{
+		pwm_failsafe_time = 0;
+	}
 
-	if ( pwm > ((float)PWMTOP/PWMTOP_MS)*ESC_MAX ) pwm = ((float)PWMTOP/PWMTOP_MS)*ESC_MAX ;
-//  if ( pwm > 2000 ) pwm = 2000;
-//  if ( pwm < ESC_MIN) pwm = ESC_MIN;
+	if ( pwm > ((float)PWMTOP/PWMTOP_US)*ESC_MAX ) pwm = ((float)PWMTOP/PWMTOP_US)*ESC_MAX ;
+
+#ifdef ONESHOT_125_ENABLE
+	pwm = pwm/8;
+#endif
 	
-//pwm = (((float)PWMTOP/PWMTOP_MS) *pwm );
-	
-//	pwm = pwm * PWMTOP ;
+	pwm = lroundf(pwm);
 	
 
 	
-	if ( pwm < 0 ) pwm = 0;
+
+	
+    if ( pwm < 0 ) pwm = 0;
   if ( pwm > PWMTOP ) pwm = PWMTOP;
 	
 	
-	pwm = lroundf(pwm);
+
   switch( number)
 	{
 		case 0:
-		//	TIMER_OC1_Init(TIMER1, &TIM_OCInitStructure);
 		  TIMER1->CHCC1 = (uint32_t) pwm; 	  
 		break;
 		
 		case 1:
-			//TIMER_OC4_Init(TIMER3, &TIM_OCInitStructure);
 		  TIMER3->CHCC4 = (uint32_t) pwm; 
 		break;
 		
 		case 2:
-			//TIMER_OC2_Init(TIMER1, &TIM_OCInitStructure);
 		  TIMER1->CHCC2 = (uint32_t) pwm; 
 		break;
 		
 		case 3:
-			//TIMER_OC3_Init(TIMER1, &TIM_OCInitStructure);
 		  TIMER1->CHCC3 = (uint32_t) pwm; 
 		break;
 		
@@ -172,3 +250,9 @@ if ( onground ) pwm = ((float)PWMTOP/PWMTOP_MS) * ESC_THROTTLEOFF;
 	}
 	
 }
+
+void motorbeep()
+{
+}
+
+#endif

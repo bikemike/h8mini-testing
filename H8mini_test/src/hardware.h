@@ -38,14 +38,25 @@
 #define FPV_PIN          GPIO_PIN_14 // SWCLK
 #define FPV_PIN_PORT     GPIOA
 
-// BUZZER pin settings - buzzer active "high"
-// SWDAT and SWCLK pins OK here
-// GPIO_PIN_13 // SWDAT - GPIO_PIN_14 // SWCLK 
-#define BUZZER_PIN       GPIO_PIN_x 
-#define BUZZER_PIN_PORT  GPIOA
-// x (micro)seconds after loss of tx or low bat before buzzer starts
-#define BUZZER_DELAY     30e6 
 
+//#define BUZZER_PIN       GPIO_PIN_13 // SWDAT
+#define BUZZER_PIN       GPIO_PIN_14 // SWCLK
+#define BUZZER_PIN_PORT  GPIOA
+#define BUZZER_DELAY     5e6 // 5 seconds after loss of tx or low bat before buzzer starts
+
+
+//*** DO NOT ENABLE ESC DRIVER WITH BRUSHED MOTORS CONNECTED ***
+// output driver type , esc settings in drv_esc.c file
+
+#define USE_PWM_DRIVER
+//#define USE_ESC_DRIVER
+//#define USE_DSHOT_DRIVER
+
+// settings in file drv_servo.c
+//#define SERVO_DRIVER
+
+// enable serial out on back-left LED
+//#define SERIAL
 
 // set zero to disable (0 - 4)
 #define LED_NUMBER       4

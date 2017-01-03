@@ -52,6 +52,7 @@ THE SOFTWARE.
 #include "binary.h"
 #include <math.h>
 #include "hardware.h"
+#include "drv_servo.h"
 
 #include <inttypes.h>
 
@@ -119,11 +120,13 @@ int main(void)
 	spi_init();
 
 	pwm_init();
-
-	pwm_set(MOTOR_FL, 0);	// FL
-	pwm_set(MOTOR_FR, 0);
-	pwm_set(MOTOR_BL, 0);	// BL
-	pwm_set(MOTOR_BR, 0);	// FR
+#ifdef SERVO_DRIVER
+    servo_init();
+#endif    
+	for (int i = 0; i <= 3; i++)
+	  {
+		  pwm_set(i, 0);
+	  }
 
 	time_init();
 
@@ -364,6 +367,10 @@ float min = score[0];
 	buzzer();
 #endif
 
+#ifdef SERVO_DRIVER
+servo_timer_loop( );
+#endif
+            
 #ifdef FPV_ON
 			static int fpv_init = 0;
 			if ( rxmode == RX_MODE_NORMAL && ! fpv_init ) {
