@@ -130,4 +130,5 @@ float adc_read(int id)
 			return (float) adcarray[0] * ((float)(adc_settings[i].adc_value)/(float) (adc_settings[i].adc_readout)) ;
 		}
 	}
+	return 0.f;
 }

@@ -105,8 +105,6 @@ int sixaxis_check(void)
 #ifndef DISABLE_GYRO_CHECK
 	uint8_t accel;
 	uint8_t gyro;
-	uint32_t old_error;
-	int i = 0;
 
 	accel = i2c_readreg(BMI055_ACC_ADDRESS, BMI055_BGW_CHIPID);
 	gyro = i2c_readreg(BMI055_GYR_ADDRESS, BMI055_CHIP_ID);
