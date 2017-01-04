@@ -950,7 +950,7 @@ void checkrx(void)
 							rxmode = RX_MODE_NORMAL;
 							bound_for_BLE_packet=1; //SilverVISE
 
-#ifdef SERIAL
+#ifdef DEBUG
 				      printf(" BIND \n");
 #endif
 			      }

@@ -33,6 +33,7 @@ THE SOFTWARE.
 
 */
 
+#include "hardware.h"
 #include "binary.h"
 #include "drv_spi.h"
 
@@ -46,7 +47,6 @@ THE SOFTWARE.
 #include "rx_bayang.h"
 
 #include "util.h"
-
 
 
 
@@ -67,9 +67,6 @@ THE SOFTWARE.
 
 // how many times to hop ahead if no reception
 #define HOPPING_NUMBER 4
-
-// because it's from the cg023 port
-#define RADIO_XN297
 
 
 
@@ -158,11 +155,18 @@ void rx_init()
 
     int rxaddress[5] = { 0, 0, 0, 0, 0 };
     xn_writerxaddress(rxaddress);
+#ifndef XN_POWER
+#define XN_POWER (B00000001|((TX_POWER&3)<<1))
+#endif
 
     xn_writereg(EN_AA, 0);  // aa disabled
     xn_writereg(EN_RXADDR, 1);  // pipe 0 only
     xn_writereg(RF_SETUP, XN_POWER);    // lna high current on ( better performance )
+#ifdef RADIO_XN297
     xn_writereg(RX_PW_P0, 15);  // payload size
+#else
+    xn_writereg(RX_PW_P0, 20);  // payload size
+#endif
     xn_writereg(SETUP_RETR, 0); // no retransmissions ( redundant?)
     xn_writereg(SETUP_AW, 3);   // address size (5 bits)
     xn_command(FLUSH_RX);
@@ -181,7 +185,14 @@ void rx_init()
     xn_writereg(0x1d, B00011000);   // 64 bit payload , software ce
 #endif
 
-    xn_writereg(0, XN_TO_RX);   // power up, crc enabled, rx mode
+
+#ifndef XN_TO_RX
+#define XN_TO_RX B00001111
+#endif
+	xn_configure(XN_TO_RX);
+#ifdef RADIO_CE_PIN
+	GPIO_SetBits( RADIO_CE_PORT, RADIO_CE_PIN);
+#endif
 
     txpower = XN_POWER;
 
@@ -225,6 +236,7 @@ int oldchan = 0;
 
 #define TELEMETRY_TIMEOUT 10000
 
+#ifdef TELEMETRY_ENABLED
 void beacon_sequence()
 {
     static int beacon_seq_state = 0;
@@ -318,27 +330,22 @@ void send_telemetry()
     send_time = gettime();
     return;
 }
+#endif
 
+#define _BV(bit) (1 << (bit))
 
 
 static char checkpacket()
 {
-    int status = xn_readreg(7);
+	int status = xn_command(NOP);
 
-    if (status & (1 << MASK_RX_DR))
-      { // rx clear bit
-          // this is not working well
-          // xn_writereg( STATUS , (1<<MASK_RX_DR) );
-          //RX packet received
-          //return 1;
-      }
-    if ((status & B00001110) != B00001110)
-      {
-          // rx fifo not empty        
-          return 2;
-      }
+	if (status & _BV(MASK_RX_DR))
+	{
+		//RX packet received
+		return 1;
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -423,9 +430,17 @@ static int decodepacket(void)
 
 void nextchannel()
 {
+#ifdef RADIO_CE_PIN
+	GPIO_ResetBits( RADIO_CE_PORT, RADIO_CE_PIN);
+#endif
     rf_chan++;
     rf_chan &= 3;
     xn_writereg(0x25, rfchannel[rf_chan]);
+	xn_command(FLUSH_RX);
+	xn_writereg( STATUS , 0x70);
+#ifdef RADIO_CE_PIN
+	GPIO_SetBits( RADIO_CE_PORT, RADIO_CE_PIN);
+#endif
 }
 
 
@@ -454,6 +469,8 @@ void checkrx(void)
           if (rxmode == RX_MODE_BIND)
             {   // rx startup , bind mode
                 xn_readpayload(rxdata, 15);
+                xn_command(FLUSH_RX);
+                xn_writereg( STATUS , 0x70);
 
                 if (rxdata[0] == 0xa4 || rxdata[0] == 0xa3)
                   { // bind packet
@@ -477,10 +494,17 @@ void checkrx(void)
                       xn_writerxaddress(rxaddress);
                       xn_writetxaddress(rxaddress);
 
+
+#ifdef RADIO_CE_PIN
+					GPIO_ResetBits( RADIO_CE_PORT, RADIO_CE_PIN);
+#endif
                       xn_writereg(0x25, rfchannel[rf_chan]);    // Set channel frequency 
                       rxmode = RX_MODE_NORMAL;
+#ifdef RADIO_CE_PIN
+					GPIO_SetBits( RADIO_CE_PORT, RADIO_CE_PIN);
+#endif
 
-#ifdef SERIAL
+#ifdef DEBUG
                       printf(" BIND \n");
 #endif
                   }
@@ -501,13 +525,18 @@ void checkrx(void)
                 unsigned long temptime = gettime();
 
                 xn_readpayload(rxdata, 15);
+				xn_command(FLUSH_RX);
+				xn_writereg( STATUS , 0x70);
+
                 pass = decodepacket();
 
                 if (pass)
                   {
                       packetrx++;
+#ifdef TELEMETRY_ENABLED
                       if (telemetry_enabled)
                           beacon_sequence();
+#endif
                       skipchannel = 0;
                       timingfail = 0;
                       lastrxchan = rf_chan;
@@ -535,8 +564,10 @@ void checkrx(void)
       } // end packet received
 
 // finish sending if already started
+#ifdef TELEMETRY_ENABLED
     if (telemetry_send)
         beacon_sequence();
+#endif
 
     unsigned long time = gettime();
 

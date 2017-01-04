@@ -37,7 +37,6 @@ THE SOFTWARE.
 #include "sixaxis.h"
 #include "drv_adc.h"
 #include "drv_time.h"
-#include "drv_softi2c.h"
 #include "drv_pwm.h"
 #include "drv_adc.h"
 #include "drv_gpio.h"
@@ -94,8 +93,13 @@ extern void loadcal(void);
 extern void imu_init(void);
 
 
+
 int main(void)
 {
+#if defined DEBUG && !defined SERIAL
+	extern void initialise_monitor_handles();
+	initialise_monitor_handles();
+#endif
 	delay(1000);
 
 
@@ -108,7 +112,6 @@ int main(void)
 	delay(1000);
 
 
-	failloop(5);
 
 #ifdef SERIAL
 	serial_init();
@@ -144,13 +147,13 @@ int main(void)
 
 	if (sixaxis_check())
 	  {
-#ifdef SERIAL
+#ifdef DEBUG
 		  printf(" MPU found \n");
 #endif
 	  }
 	else
 	  {
-#ifdef SERIAL
+#ifdef DEBUG
 		  printf("ERROR: MPU NOT FOUND \n");
 #endif
 		  failloop(4);
@@ -165,7 +168,7 @@ int main(void)
 
 	while (count < 64)
 	  {
-		  vbattfilt += adc_read(1);
+		  vbattfilt += adc_read(ADC_ID_VOLTAGE);
 		  count++;
 	  }
        // for randomising MAC adddress of ble app - this will make the int = raw float value        
@@ -174,7 +177,7 @@ int main(void)
       
 	vbattfilt = vbattfilt / 64;
 
-#ifdef SERIAL
+#ifdef DEBUG
 	printf("Vbatt %2.2f \n", vbattfilt);
 #ifdef NOMOTORS
 	printf("NO MOTORS\n");
@@ -200,8 +203,8 @@ int main(void)
 	extern unsigned int liberror;
 	if (liberror)
 	  {
-#ifdef SERIAL
-		  printf("ERROR: I2C \n");
+#ifdef DEBUG
+		  printf("ERROR: I2C %d\n",liberror);
 #endif
 		  failloop(7);
 	  }
@@ -250,7 +253,7 @@ int main(void)
 // battery low logic
 				
 		float hyst;
-		float battadc = adc_read(1);
+		float battadc = adc_read(ADC_ID_VOLTAGE);
 vbatt = battadc;
 		// average of all 4 motor thrusts
 		// should be proportional with battery current			

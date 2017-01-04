@@ -53,10 +53,12 @@ typedef void (*func_void_void_t)(void);
 // rotations performed in order
 //#define SENSOR_ROTATE_45_CCW
 //#define SENSOR_ROTATE_90_CW
-#define SENSOR_ROTATE_90_CCW // fq777-124 has gyro rotated 90CW
+//#define SENSOR_ROTATE_90_CCW
 //#define SENSOR_ROTATE_180
 //#define SENSOR_FLIP_180
 
+static const uint8_t bmi055_acc_range = BMI055_PMU_RANGE_16G;
+static int8_t        bmi055_acc_scale = 1; // dynamically set based on acc range
 
 extern void loadcal(void);
 
@@ -71,25 +73,41 @@ void sixaxis_init(void)
 	// ACC reset.
 	i2c_writereg(BMI055_ACC_ADDRESS, BMI055_BGW_SOFTRESET, BMI055_BGW_SOFTRESET_RESET);
 
-	delay(40000); // Is this delay required for BMI055 ?
+	liberror = 0; // resetting causes liberror so reset the error counter
 
-	i2c_writereg(BMI055_ACC_ADDRESS, BMI055_PMU_RANGE, BMI055_PMU_RANGE_16G); // 16G scale
+	delay(40000); // Is this delay required for BMI055 ?
+	i2c_writereg(BMI055_ACC_ADDRESS, BMI055_PMU_RANGE, bmi055_acc_range); // 16G scale
 	i2c_writereg(BMI055_ACC_ADDRESS, BMI055_PMU_BW, ACC_LOW_PASS_FILTER_BMI055); // Filter
 
 	i2c_writereg(BMI055_GYR_ADDRESS, BMI055_RANGE,BMI055_RANGE_2000DPS);
 	i2c_writereg(BMI055_GYR_ADDRESS, BMI055_BW, GYRO_LOW_PASS_FILTER_BMI055);
+
+	if (bmi055_acc_range == BMI055_PMU_RANGE_16G)
+	{
+		bmi055_acc_scale = 1;
+	}
+	else if (bmi055_acc_range == BMI055_PMU_RANGE_8G)
+	{
+		bmi055_acc_scale = 2;
+	}
+	else if (bmi055_acc_range == BMI055_PMU_RANGE_4G)
+	{
+		bmi055_acc_scale = 4;
+	}
+	else if (bmi055_acc_range == BMI055_PMU_RANGE_2G)
+	{
+		bmi055_acc_scale = 8;
+	}
 }
 
 int sixaxis_check(void)
 {
 #ifndef DISABLE_GYRO_CHECK
-	// It was not a known 6xxx could it be a BMI055 ?
 	uint8_t accel;
 	uint8_t gyro;
 	uint32_t old_error;
 	int i = 0;
-	//i2c_writereg(BMI055_ACC_ADDRESS, BMI055_BGW_SOFTRESET,BMI055_BGW_SOFTRESET_RESET);
-	//i2c_writereg(BMI055_GYR_ADDRESS, BMI055_BGW_SOFTRESET,BMI055_BGW_SOFTRESET_RESET);
+
 	accel = i2c_readreg(BMI055_ACC_ADDRESS, BMI055_BGW_CHIPID);
 	gyro = i2c_readreg(BMI055_GYR_ADDRESS, BMI055_CHIP_ID);
 	if(( gyro == BMI055_CHIP_ID_VAL) && ( accel == BMI055_BGW_CHIPID_VAL))
@@ -124,9 +142,10 @@ void sixaxis_read(sixaxis_readtype read_type)
 	{
 		i2c_readdata(BMI055_ACC_ADDRESS, BMI055_ACCD_X_LSB, data, 6);
 
-		accel[0] = (((int16_t) ((data[1] << 8) + (data[0]&0xF0)))/16);
-		accel[1] = (((int16_t) ((data[3] << 8) + (data[2]&0xF0)))/16);
-		accel[2] = (((int16_t) ((data[5] << 8) + (data[4]&0xF0)))/16);
+		accel[0] = -(float)((int16_t) (((uint16_t)data[1] << 8) + ((uint16_t)data[0]&0xF0))/bmi055_acc_scale);
+		accel[1] = -(float)((int16_t) (((uint16_t)data[3] << 8) + ((uint16_t)data[2]&0xF0))/bmi055_acc_scale);
+		accel[2] =  (float)((int16_t) (((uint16_t)data[5] << 8) + ((uint16_t)data[4]&0xF0))/bmi055_acc_scale);
+
 		// this is the value of both cos 45 and sin 45 = 1/sqrt(2)
 #define INVSQRT2 0.707106781f
 
@@ -220,9 +239,8 @@ void sixaxis_read(sixaxis_readtype read_type)
 	}
 #endif	
 
-	//gyronew[0] = - gyronew[0];
-	gyronew[1] = - gyronew[1];
-	gyronew[2] = - gyronew[2];
+	gyronew[1] = -gyronew[1];
+	gyronew[2] = -gyronew[2];
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -236,8 +254,6 @@ void sixaxis_read(sixaxis_readtype read_type)
 #endif
 	}
 
-	gyro[0] = -gyro[0];
-	gyro[2] = -gyro[2];
 
 }
 

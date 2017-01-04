@@ -33,6 +33,7 @@ THE SOFTWARE.
 #define NEW_DTERM
 
 
+#include "hardware.h"
 #include "pid.h"
 #include "util.h"
 #include "config.h"
@@ -40,12 +41,9 @@ THE SOFTWARE.
 #include "defines.h"
 
 
-// Kp                       ROLL       PITCH     YAW
-float pidkp[PIDNUMBER] = { 17.0e-2, 17.0e-2, 10e-1 };
-// Ki                       ROLL       PITCH     YAW
-float pidki[PIDNUMBER] = { 15e-1, 15e-1, 50e-1 };
-// Kd                       ROLL       PITCH     YAW
-float pidkd[PIDNUMBER] = { 6.8e-1, 6.8e-1, 5.0e-1 };
+float pidkp[PIDNUMBER] = PIDKP; // PIDKP is defined in the targets hardware header file (ie hardware_h8mini.h)
+float pidki[PIDNUMBER] = PIDKI; // PIDKI is defined in the targets hardware header file (ie hardware_h8mini.h)
+float pidkd[PIDNUMBER] = PIDKD; // PIDKD is defined in the targets hardware header file (ie hardware_h8mini.h)
 
 
 // output limit                 

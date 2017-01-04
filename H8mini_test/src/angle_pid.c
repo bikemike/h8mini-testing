@@ -1,6 +1,7 @@
 
 
 #include <stdbool.h>
+#include "hardware.h"
 #include "pid.h"
 #include "util.h"
 #include "config.h"
@@ -10,11 +11,8 @@
 
 //                   						 ANGLE PIDS
 // yaw is done by the rate yaw pid
-// Kp              	         ROLL     PITCH    YAW
-float apidkp[APIDNUMBER] = { 2.2e-2, 2.2e-2, 0e-1 };
-
-// Ki                        ROLL     PITCH    YAW
-float apidki[APIDNUMBER] = { 1.0e-2, 1.0e-2, 0e-1 };   
+float apidkp[APIDNUMBER] = APIDKP; // APIDKP is defined in the targets hardware header file (ie hardware_h8mini.h)
+float apidki[APIDNUMBER] = APIDKI; // APIDKI is defined in the targets hardware header file (ie hardware_h8mini.h) 
 
 
 

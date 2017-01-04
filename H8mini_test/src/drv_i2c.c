@@ -23,6 +23,8 @@ THE SOFTWARE.
 */
 
 
+#include "hardware.h"
+#ifdef USE_HARDWARE_I2C
 
 #include "gd32f1x0.h"
 #include <stdint.h>
@@ -304,3 +306,6 @@ int i2c_readdata(int address, int reg, int *data, int size)
 
 	return error;
 }
+
+#endif
+

@@ -1,3 +1,6 @@
+TARGETS=h8mini fq777_124
+DEBUG_TARGETS = $(addsuffix _debug, $(TARGETS))
+
 TARGET=h8mini
 EXECUTABLE=h8mini.elf
 
@@ -28,9 +31,9 @@ DBG_CFLAGS     = -Og -g3 -DDEBUG
 RELEASE_CFLAGS = -Os -flto
 
 AFLAGS = $(MCFLAGS)
-BASE_LDFLAGS    = --specs=nano.specs --specs=nosys.specs -lc_nano -lm -Wl,--no-wchar-size-warning,-T,flash.ld,-Map,$(TARGET).map,--gc-sections 
+BASE_LDFLAGS    = --specs=nano.specs -lc_nano -lm -Wl,--no-wchar-size-warning,-T,flash.ld,-Map,$(TARGET).map,--gc-sections 
 DBG_LDFLAGS     = --specs=rdimon.specs -lrdimon -u _printf_float
-RELEASE_LDFLAGS = -flto -lnosys
+RELEASE_LDFLAGS = --specs=nosys.specs -flto 
 
 
 SRC = $(wildcard $(topdir)/H8mini_*/src/*.c) \
@@ -47,65 +50,89 @@ OBJ += Startup.o
 
 
 
-release: CFLAGS = $(RELEASE_CFLAGS)
+uppercase_TABLE:=a,A b,B c,C d,D e,E f,F g,G h,H i,I j,J k,K l,L m,M n,N o,O p,P q,Q r,R s,S t,T u,U v,V w,W x,X y,Y z,Z
 
-release: LDFLAGS = $(RELEASE_LDFLAGS)
+define uppercase_internal
+$(if $1,$$(subst $(firstword $1),$(call uppercase_internal,$(wordlist
+2,$(words $1),$1),$2)),$2)
+endef
 
-release: $(TARGET)
+define uppercase
+$(eval uppercase_RESULT:=$(call
+uppercase_internal,$(uppercase_TABLE),$1))$(uppercase_RESULT)
+endef
 
 
-debug: CFLAGS = $(DBG_CFLAGS)
+release: $(TARGETS)
 
-debug: LDFLAGS = $(DBG_LDFLAGS)
+debug: $(DEBUG_TARGETS)
 
-debug: $(DBG_TARGET)
+
+all: release debug
+
+
+
+define MAKE_TARGET
+
+
+$(1).hex: $(1).elf
+	$$(CP) -O ihex $$^ $$@
+
+$(1): $(1).elf
+	$$(CP) -O binary $$^ $$@
+
+ifneq (,$(findstring debug,$(1)))
+$(1).elf: CFLAGS = $$(DBG_CFLAGS) -DHARDWARE_$(call uppercase,$(subst _debug,,$(1)))
+
+$(1).elf: LDFLAGS = $$(DBG_LDFLAGS)
+
+else
+$(1).elf: CFLAGS = $$(RELEASE_CFLAGS) -DHARDWARE_$(call uppercase,$(subst _debug,,$(1)))
+
+$(1).elf: LDFLAGS = $$(RELEASE_LDFLAGS)
+
+endif
+
+$(1).elf: $$(SRC) $$(STARTUP) $$(HEADERS)
+	$$(CC) $$(BASE_CFLAGS) $$(CFLAGS) $$^ $$(BASE_LDFLAGS) $$(LDFLAGS) -o $$@
+	arm-none-eabi-size $$@
+
+$(1)-flash:
+	openocd -f /usr/share/openocd/scripts/interface/stlink-v2.cfg -f /usr/share/openocd/scripts/target/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase $(1) 0x08000000" -c "verify_image $(1) 0x08000000" -c "reset run" -c shutdown
+
+$(1)-flash-bm:
+	$$(DB) $(1).elf -ex "set confirm off" -ex "target extended-remote /dev/ttyACM0" -ex "monitor swdp_scan" -ex "attach 1" -ex "load" -ex "detach" -ex "quit"
+
+$(1)-debug:
+	$$(DB) $(1).elf -ex "target remote | openocd -f /usr/share/openocd/scripts/interface/stlink-v2.cfg -f /usr/share/openocd/scripts/target/stm32f1x.cfg -c 'gdb_port pipe; log_output $(1)-debug.log' " -ex "monitor arm semihosting enable"
+
+$(1)-debug-bm:
+	$$(DB) $(1).elf -ex "target extended-remote /dev/ttyACM0" -ex "monitor swdp_scan" -ex "attach 1"
+
+
+endef
+
+$(foreach target,$(TARGETS),$(eval $(call MAKE_TARGET,$(target))))
+$(foreach target,$(DEBUG_TARGETS),$(eval $(call MAKE_TARGET,$(target))))
+
 
 
 all: debug release
 
-
-$(TARGET).hex: $(EXECUTABLE)
-	$(CP) -O ihex $^ $@
-
-$(TARGET): $(EXECUTABLE)
-	$(CP) -O binary $^ $@
-
-
-$(EXECUTABLE): $(SRC) $(STARTUP) $(HEADERS)
-	$(CC) $(BASE_CFLAGS) $(CFLAGS) $^ $(BASE_LDFLAGS) $(LDFLAGS) -o $@
-	arm-none-eabi-size $(EXECUTABLE)
-
-$(DBG_TARGET).hex: $(DBG_EXECUTABLE)
-	$(CP) -O ihex $^ $@
-
-$(DBG_TARGET): $(DBG_EXECUTABLE)
-	$(CP) -O binary $^ $@
-
-
-$(DBG_EXECUTABLE): $(SRC) $(STARTUP) $(HEADERS)
-	$(CC) $(BASE_CFLAGS) $(CFLAGS) $^ $(BASE_LDFLAGS) $(LDFLAGS) -o $@
-	arm-none-eabi-size $(DBG_EXECUTABLE)
-
 clean:
-	rm -f Startup.lst $(TARGET) $(TARGET).lst $(AUTOGEN) \
-		$(TARGET).out $(TARGET).hex  $(TARGET).map \
-		$(TARGET).dmp $(EXECUTABLE) \
-		$(DBG_TARGET) $(DBG_TARGET).lst \
-		$(DBG_TARGET).out $(DBG_TARGET).hex  $(DBG_TARGET).map \
-		$(DBG_TARGET).dmp $(DBG_EXECUTABLE)
+	rm -f Startup.lst $(TARGETS) $(addsuffix .lst, $(TARGETS)) $(AUTOGEN) \
+		$(addsuffix .out, $(TARGETS)) $(addsuffix .hex, $(TARGETS)) $(addsuffix .map, $(TARGETS)) \
+		$(addsuffix .dmp, $(TARGETS)) $(addsuffix .elf, $(TARGETS)) \
+		$(addsuffix .d, $(TARGETS)) \
+		$(DEBUG_TARGETS) $(addsuffix .lst, $(DEBUG_TARGETS)) \
+		$(addsuffix .out, $(DEBUG_TARGETS)) $(addsuffix .hex, $(DEBUG_TARGETS)) $(addsuffix .map, $(DEBUG_TARGETS)) \
+		$(addsuffix .dmp, $(DEBUG_TARGETS)) $(addsuffix .elf, $(DEBUG_TARGETS))\
+		$(addsuffix .d, $(DEBUG_TARGETS))
 
-flash:
-	openocd -f /usr/share/openocd/scripts/interface/stlink-v2.cfg -f /usr/share/openocd/scripts/target/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase h8mini 0x08000000" -c "verify_image h8mini 0x08000000" -c "reset run" -c shutdown
+flash-erase:
+	openocd -s /usr/share/openocd/scripts -f /usr/share/openocd/scripts/interface/stlink-v2.cfg -f /usr/share/openocd/scripts/target/stm32f1x.cfg - debug_level 3 -c init -c "reset halt" -c "mww 0x40022004 0x45670123" -c "mww 0x40022004 0xCDEF89AB" -c "mww 0x40022008 0x45670123" -c "mww 0x40022008 0xCDEF89AB" -c "mww 0x40022010 0x220" -c "mww 0x40022010 0x260" -c "sleep 100" -c "mww 0x40022010 0x230" -c "mwh 0x1ffff800 0x5AA5" -c "sleep 1000" -c "mww 0x40022010 0x2220" -c "sleep 100" -c "mdw 0x40022010" -c "mdw 0x4002201c" -c "mdw 0x1ffff800" -c shutdown
+
 
 flash-erase-bm:
 	$(DB) -ex "set confirm off" -ex "target extended-remote /dev/ttyACM0" -ex "monitor swdp_scan" -ex "attach 1" -ex "monitor erase_mass" -ex "detach" -ex "quit"
-
-flash-bm:
-	$(DB) $(EXECUTABLE) -ex "set confirm off" -ex "target extended-remote /dev/ttyACM0" -ex "monitor swdp_scan" -ex "attach 1" -ex "load" -ex "detach" -ex "quit"
-
-flash-debug-bm:
-	$(DB) $(DBG_EXECUTABLE) -ex "set confirm off" -ex "target extended-remote /dev/ttyACM0" -ex "monitor swdp_scan" -ex "attach 1" -ex "load" -ex "detach" -ex "quit"
-
-debug-bm:
-	$(DB) $(DBG_EXECUTABLE) -ex "target extended-remote /dev/ttyACM0" -ex "monitor swdp_scan" -ex "attach 1"
 

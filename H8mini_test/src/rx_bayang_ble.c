@@ -807,7 +807,7 @@ void checkrx(void)
 				      xn_writereg(0x25, rfchannel[rf_chan]);	// Set channel frequency 
 							rxmode = RX_MODE_NORMAL;
 
-#ifdef SERIAL
+#ifdef DEBUG
 				      printf(" BIND \n");
 #endif
 			      }

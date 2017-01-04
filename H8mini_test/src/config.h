@@ -242,6 +242,8 @@
 // rx protocol selection
 #define RX_FQ777_124
 //#define RX_BAYANG_TELEMETRY
+//#define RX_FQ777_124
+#define RX_BAYANG_TELEMETRY
 //#define RX_BAYANG_BLE
 //#define RX_BAYANG_BLE_APP
 
@@ -313,6 +315,22 @@
 // disable startup battery check so app can work after a reset
 #ifdef RX_BAYANG_BLE_APP
 #undef STOP_LOWBATTERY
+#endif
+
+#if defined RX_BAYANG_TELEMETRY || defined RX_BAYANG_BLE || defined RX_BAYANG_BLE_APP
+#if  !defined(RADIO_XN297) && !defined(RADIO_XN297L)
+#define XN297_EMULATION
+#endif
+#endif
+
+#if !defined(RADIO_SSV7241) && defined(RX_FQ777_124)
+#error RX_FQ777_124 protocol currently only works with RADIO_SSV7241
+#endif
+
+#ifdef SERIAL
+#ifndef DEBUG
+#define DEBUG
+#endif
 #endif
 
 // do not change
