@@ -240,8 +240,6 @@
 #define TX_POWER_TELEMETRY 3
 
 // rx protocol selection
-#define RX_FQ777_124
-//#define RX_BAYANG_TELEMETRY
 //#define RX_FQ777_124
 #define RX_BAYANG_TELEMETRY
 //#define RX_BAYANG_BLE
