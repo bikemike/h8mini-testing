@@ -127,8 +127,8 @@
 //#define ADC_PA0 0
 //#define ADC_PA1 1
 #define ADC_PA2         ADC_ID_VOLTAGE
-#define ADC_PA2_READOUT 2317
-#define ADC_PA2_VALUE   4.14f
+#define ADC_PA2_READOUT 2510
+#define ADC_PA2_VALUE   3.77f
 //#define ADC_PA3 3
 //#define ADC_PA4 4
 //#define ADC_PA5 5

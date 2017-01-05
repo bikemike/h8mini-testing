@@ -104,7 +104,7 @@ void adc_init(void)
 	ADC_InitStructure.ADC_Mode_Continuous = ENABLE;
 	ADC_InitStructure.ADC_Trig_External = ADC_EXTERNAL_TRIGGER_MODE_NONE;
 	ADC_InitStructure.ADC_Data_Align = ADC_DATAALIGN_RIGHT;
-	ADC_InitStructure.ADC_Channel_Number = 4; 
+	ADC_InitStructure.ADC_Channel_Number = size; 
 	ADC_Init(&ADC_InitStructure);
 
 	for (int i = 0; i < size; ++i)
@@ -127,7 +127,7 @@ float adc_read(int id)
 	{
 		if (id == adc_settings[i].id)
 		{
-			return (float) adcarray[0] * ((float)(adc_settings[i].adc_value)/(float) (adc_settings[i].adc_readout)) ;
+			return (float) adcarray[i] * ((float)(adc_settings[i].adc_value)/(float) (adc_settings[i].adc_readout)) ;
 		}
 	}
 	return 0.f;
