@@ -2,17 +2,11 @@
 // Example to create a new hardware target(let's call it mytarget):
 // 1. copy hardware_h8mini.h file to hardware_mytarget.h
 // 2. modify the hardware_mytarget.h
-// 3. in hardware_mytarget.h, change the #ifdef HARDWARE_H8MINI to #ifdef HARDWARE_MYTARGET
-// 4. in this file add the following to the statement below 
-//    #elif defined HARDWARE_MYTARGET 
-//    #include "hardware_mytarget.h"
-// 6. in the Makefile, add mytarget to the TARGETS variable
-// 7. build using gcc by running "make mytarget"
-// 8. flash by running "make flash_mytarget"
+// 3. in the Makefile, add mytarget to the TARGETS variable
+// 4. build using gcc by running "make mytarget"
+// 5. flash by running "make flash_mytarget"
 
-#if defined HARDWARE_H8MINI
-#include "hardware_h8mini.h"
-#elif defined HARDWARE_FQ777_124
-#include "hardware_fq777-124.h"
-#endif
+// HARDWARE_HEADER is a preprocessor define and is defined
+// in the Makefile or uVision project settings.
+#include HARDWARE_HEADER
 

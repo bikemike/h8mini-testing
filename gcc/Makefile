@@ -1,4 +1,4 @@
-TARGETS=h8mini fq777_124
+TARGETS=h8mini fq777-124
 DEBUG_TARGETS = $(addsuffix _debug, $(TARGETS))
 
 TARGET=h8mini
@@ -82,12 +82,12 @@ $(1): $(1).elf
 	$$(CP) -O binary $$^ $$@
 
 ifneq (,$(findstring debug,$(1)))
-$(1).elf: CFLAGS = $$(DBG_CFLAGS) -DHARDWARE_$(call uppercase,$(subst _debug,,$(1)))
+$(1).elf: CFLAGS = $$(DBG_CFLAGS) -DHARDWARE_HEADER=\"hardware_$(subst _debug,,$(1)).h\"
 
 $(1).elf: LDFLAGS = $$(DBG_LDFLAGS)
 
 else
-$(1).elf: CFLAGS = $$(RELEASE_CFLAGS) -DHARDWARE_$(call uppercase,$(subst _debug,,$(1)))
+$(1).elf: CFLAGS = $$(RELEASE_CFLAGS) -DHARDWARE_HEADER=\"hardware_$(1).h\"
 
 $(1).elf: LDFLAGS = $$(RELEASE_LDFLAGS)
 
