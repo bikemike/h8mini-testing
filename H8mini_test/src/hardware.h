@@ -8,5 +8,8 @@
 
 // HARDWARE_HEADER is a preprocessor define and is defined
 // in the Makefile or uVision project settings.
-#include HARDWARE_HEADER
+
+#define str(x) #x
+#define xstr(x) str(x)
+#include xstr(HARDWARE_HEADER)
 
