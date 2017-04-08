@@ -18,9 +18,9 @@
 // to disable led pins set number to zero
 
 // RATE PIDS        ROLL    PITCH     YAW
-#define PIDKP  { 17.0e-2, 17.0e-2,   10e-1 }
-#define PIDKI  {   15e-1,   15e-1,   50e-1 }
-#define PIDKD  {  6.8e-1,  6.8e-1,  5.0e-1 } 
+#define PIDKP  {  1.0e-1,  1.0e-1,   10e-1 }
+#define PIDKI  {   10e-1,   10e-1,   50e-1 }
+#define PIDKD  {  4.0e-1,  4.0e-1,  5.0e-1 } 
 
 // ANGLE PIDS       ROLL    PITCH     YAW
 // (yaw is done by the rate yaw pid)

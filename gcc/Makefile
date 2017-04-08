@@ -31,7 +31,7 @@ DBG_CFLAGS     = -Og -g3 -DDEBUG
 RELEASE_CFLAGS = -Os -flto
 
 AFLAGS = $(MCFLAGS)
-BASE_LDFLAGS    = --specs=nano.specs -lc_nano -lm -Wl,--no-wchar-size-warning,-T,flash.ld,-Map,$(TARGET).map,--gc-sections 
+BASE_LDFLAGS    = --specs=nano.specs -lc -lm -Wl,--no-wchar-size-warning,-T,flash.ld,-Map,$(TARGET).map,--gc-sections 
 DBG_LDFLAGS     = --specs=rdimon.specs -lrdimon -u _printf_float
 RELEASE_LDFLAGS = --specs=nosys.specs -flto 
 
