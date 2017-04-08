@@ -3,6 +3,12 @@
 #include "drv_pwm.h"
 #include "config.h"
 #include "hardware.h"
+#include "drv_time.h"
+#include <stdlib.h>
+#include  <math.h>
+
+// pwm driver by Mike Morrison -  "bikemike"
+// https://github.com/bikemike from the fq777-124 code
 
 #ifdef USE_PWM_DRIVER
 
@@ -67,6 +73,11 @@ struct PWM_SETTINGS
 	volatile uint32_t* chcc;
 	PeriphClock_Enable_Func periphclock_enable_func; 
 	uint32_t periph_clock;
+};
+
+struct PWM_SETTINGS_2
+{
+	volatile uint32_t* chcc;
 	uint8_t motor_id;
 };
 
@@ -75,70 +86,69 @@ struct PWM_SETTINGS
 #define TIMER_CH3 2
 #define TIMER_CH4 3
 
+uint8_t pwm_order[4];
 
 #if defined PWM_PA0 && defined PWM_PA5
 #error PWM_PA0 and PWM_PA5 use the same timer
 #endif
 
-struct PWM_SETTINGS pwm_settings[] = 
+struct PWM_SETTINGS_2 pwm_settings_global[] = 
 {
 #ifdef PWM_PA0
-	{GPIO_PIN_0, GPIOA, GPIO_AF_2, GPIO_PINSOURCE0, TIMER2, TIMER_CH1, &TIMER2->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2, PA0_MOTOR_ID},
+	{ &TIMER2->CHCC1, PA0_MOTOR_ID},
 #endif
 #ifdef PWM_PA1
-	{GPIO_PIN_1, GPIOA, GPIO_AF_2, GPIO_PINSOURCE1, TIMER2, TIMER_CH2, &TIMER2->CHCC2, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2, PA1_MOTOR_ID},
+	{ &TIMER2->CHCC2, PA1_MOTOR_ID},
 #endif
 #ifdef PWM_PA2
-	{GPIO_PIN_2, GPIOA, GPIO_AF_2, GPIO_PINSOURCE2, TIMER2, TIMER_CH3, &TIMER2->CHCC3, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2, PA2_MOTOR_ID},
+	{ &TIMER2->CHCC3, PA2_MOTOR_ID},
 #endif
 #ifdef PWM_PA3
-	{GPIO_PIN_3, GPIOA, GPIO_AF_2, GPIO_PINSOURCE3, TIMER2, TIMER_CH4, &TIMER2->CHCC4, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2, PA3_MOTOR_ID},
+	{ &TIMER2->CHCC4, PA3_MOTOR_ID},
 #endif
 #ifdef PWM_PA4
-	{GPIO_PIN_4, GPIOA, GPIO_AF_4, GPIO_PINSOURCE4, TIMER14, TIMER_CH1, &TIMER14->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER14, PA4_MOTOR_ID},
+	{ &TIMER14->CHCC1, PA4_MOTOR_ID},
 #endif
 #ifdef PWM_PA5
-	{GPIO_PIN_5, GPIOA, GPIO_AF_2, GPIO_PINSOURCE5, TIMER2, TIMER_CH1, &TIMER2->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2, PA5_MOTOR_ID},
+	{ &TIMER2->CHCC1, PA5_MOTOR_ID},
 #endif
 #ifdef PWM_PA6
-	{GPIO_PIN_6, GPIOA, GPIO_AF_1, GPIO_PINSOURCE6, TIMER3, TIMER_CH1, &TIMER3->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3, PA6_MOTOR_ID},
+	{ &TIMER3->CHCC1, PA6_MOTOR_ID},
 #endif
 #ifdef PWM_PA7
-	{GPIO_PIN_7, GPIOA, GPIO_AF_1, GPIO_PINSOURCE7, TIMER3, TIMER_CH2, &TIMER3->CHCC3, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3, PA7_MOTOR_ID},
+	{ &TIMER3->CHCC3, PA7_MOTOR_ID},
 #endif
 #ifdef PWM_PA8
-	{GPIO_PIN_8, GPIOA, GPIO_AF_2, GPIO_PINSOURCE8, TIMER1, TIMER_CH1, &TIMER1->CHCC1, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER1, PA8_MOTOR_ID},
+	{ &TIMER1->CHCC1, PA8_MOTOR_ID},
 #endif
 #ifdef PWM_PA9
-	{GPIO_PIN_9, GPIOA, GPIO_AF_2, GPIO_PINSOURCE9, TIMER1, TIMER_CH2, &TIMER1->CHCC2, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER1, PA9_MOTOR_ID},
+	{ &TIMER1->CHCC2, PA9_MOTOR_ID},
 #endif
 #ifdef PWM_PA10
-	{GPIO_PIN_10, GPIOA, GPIO_AF_2, GPIO_PINSOURCE10, TIMER1, TIMER_CH3, &TIMER1->CHCC3, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER1, PA10_MOTOR_ID},
+	{  &TIMER1->CHCC3, PA10_MOTOR_ID},
 #endif
 #ifdef PWM_PA15
-	{GPIO_PIN_15, GPIOA, GPIO_AF_2, GPIO_PINSOURCE15, TIMER2, TIMER_CH1, &TIMER2->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2, PA15_MOTOR_ID},
+	{&TIMER2->CHCC1, PA15_MOTOR_ID},
 #endif
 #ifdef PWM_PB0
-	{GPIO_PIN_0, GPIOB, GPIO_AF_1, GPIO_PINSOURCE0, TIMER3, TIMER_CH3, &TIMER3->CHCC3, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3, PB0_MOTOR_ID},
+	{ &TIMER3->CHCC3, PB0_MOTOR_ID},
 #endif
 #ifdef PWM_PB1
-	{GPIO_PIN_1, GPIOB, GPIO_AF_1, GPIO_PINSOURCE1, TIMER3, TIMER_CH4, &TIMER3->CHCC4, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3, PB1_MOTOR_ID},
+	{ &TIMER3->CHCC4, PB1_MOTOR_ID},
 #endif
 #ifdef PWM_PB4
-	{GPIO_PIN_4, GPIOB, GPIO_AF_1, GPIO_PINSOURCE4, TIMER3, TIMER_CH1, &TIMER3->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3, PB4_MOTOR_ID},
+	{ &TIMER3->CHCC1, PB4_MOTOR_ID},
 #endif
 #ifdef PWM_PB5
-	{GPIO_PIN_5, GPIOB, GPIO_AF_1, GPIO_PINSOURCE5, TIMER3, TIMER_CH2, &TIMER3->CHCC2, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3, PB5_MOTOR_ID},
+	{ &TIMER3->CHCC2, PB5_MOTOR_ID},
 #endif
 #ifdef PWM_PB6
-	{GPIO_PIN_6, GPIOB, GPIO_AF_2, GPIO_PINSOURCE6, TIMER16, TIMER_CH1, &TIMER16->CHCC1, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER16, PB6_MOTOR_ID},
+	{ &TIMER16->CHCC1, PB6_MOTOR_ID},
 #endif
 #ifdef PWM_PB7
-	{GPIO_PIN_7, GPIOB, GPIO_AF_2, GPIO_PINSOURCE7, TIMER17, TIMER_CH1, &TIMER17->CHCC1, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER17, PB7_MOTOR_ID},
+	{ &TIMER17->CHCC1, PB7_MOTOR_ID},
 #endif
 };
-
-
 static void init_timer(TIMER_TypeDef* timer, uint8_t chan_id, uint32_t period)
 {
 	TIMER_BaseInitPara TIM_TimeBaseStructure;
@@ -172,6 +182,65 @@ static void init_timer(TIMER_TypeDef* timer, uint8_t chan_id, uint32_t period)
 void pwm_init(void)
 {
 
+    
+struct PWM_SETTINGS pwm_settings[] = 
+{
+#ifdef PWM_PA0
+	{GPIO_PIN_0, GPIOA, GPIO_AF_2, GPIO_PINSOURCE0, TIMER2, TIMER_CH1, &TIMER2->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2},
+#endif
+#ifdef PWM_PA1
+	{GPIO_PIN_1, GPIOA, GPIO_AF_2, GPIO_PINSOURCE1, TIMER2, TIMER_CH2, &TIMER2->CHCC2, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2},
+#endif
+#ifdef PWM_PA2
+	{GPIO_PIN_2, GPIOA, GPIO_AF_2, GPIO_PINSOURCE2, TIMER2, TIMER_CH3, &TIMER2->CHCC3, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2},
+#endif
+#ifdef PWM_PA3
+	{GPIO_PIN_3, GPIOA, GPIO_AF_2, GPIO_PINSOURCE3, TIMER2, TIMER_CH4, &TIMER2->CHCC4, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2},
+#endif
+#ifdef PWM_PA4
+	{GPIO_PIN_4, GPIOA, GPIO_AF_4, GPIO_PINSOURCE4, TIMER14, TIMER_CH1, &TIMER14->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER14},
+#endif
+#ifdef PWM_PA5
+	{GPIO_PIN_5, GPIOA, GPIO_AF_2, GPIO_PINSOURCE5, TIMER2, TIMER_CH1, &TIMER2->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2},
+#endif
+#ifdef PWM_PA6
+	{GPIO_PIN_6, GPIOA, GPIO_AF_1, GPIO_PINSOURCE6, TIMER3, TIMER_CH1, &TIMER3->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3},
+#endif
+#ifdef PWM_PA7
+	{GPIO_PIN_7, GPIOA, GPIO_AF_1, GPIO_PINSOURCE7, TIMER3, TIMER_CH2, &TIMER3->CHCC3, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3},
+#endif
+#ifdef PWM_PA8
+	{GPIO_PIN_8, GPIOA, GPIO_AF_2, GPIO_PINSOURCE8, TIMER1, TIMER_CH1, &TIMER1->CHCC1, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER1},
+#endif
+#ifdef PWM_PA9
+	{GPIO_PIN_9, GPIOA, GPIO_AF_2, GPIO_PINSOURCE9, TIMER1, TIMER_CH2, &TIMER1->CHCC2, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER1},
+#endif
+#ifdef PWM_PA10
+	{GPIO_PIN_10, GPIOA, GPIO_AF_2, GPIO_PINSOURCE10, TIMER1, TIMER_CH3, &TIMER1->CHCC3, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER1},
+#endif
+#ifdef PWM_PA15
+	{GPIO_PIN_15, GPIOA, GPIO_AF_2, GPIO_PINSOURCE15, TIMER2, TIMER_CH1, &TIMER2->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER2},
+#endif
+#ifdef PWM_PB0
+	{GPIO_PIN_0, GPIOB, GPIO_AF_1, GPIO_PINSOURCE0, TIMER3, TIMER_CH3, &TIMER3->CHCC3, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3},
+#endif
+#ifdef PWM_PB1
+	{GPIO_PIN_1, GPIOB, GPIO_AF_1, GPIO_PINSOURCE1, TIMER3, TIMER_CH4, &TIMER3->CHCC4, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3},
+#endif
+#ifdef PWM_PB4
+	{GPIO_PIN_4, GPIOB, GPIO_AF_1, GPIO_PINSOURCE4, TIMER3, TIMER_CH1, &TIMER3->CHCC1, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3},
+#endif
+#ifdef PWM_PB5
+	{GPIO_PIN_5, GPIOB, GPIO_AF_1, GPIO_PINSOURCE5, TIMER3, TIMER_CH2, &TIMER3->CHCC2, &RCC_APB1PeriphClock_Enable, RCC_APB1PERIPH_TIMER3},
+#endif
+#ifdef PWM_PB6
+	{GPIO_PIN_6, GPIOB, GPIO_AF_2, GPIO_PINSOURCE6, TIMER16, TIMER_CH1, &TIMER16->CHCC1, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER16},
+#endif
+#ifdef PWM_PB7
+	{GPIO_PIN_7, GPIOB, GPIO_AF_2, GPIO_PINSOURCE7, TIMER17, TIMER_CH1, &TIMER17->CHCC1, &RCC_APB2PeriphClock_Enable, RCC_APB2PERIPH_TIMER17},
+#endif
+};
+    
 	GPIO_InitPara GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode = GPIO_MODE_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_SPEED_50MHZ;
@@ -208,6 +277,17 @@ void pwm_init(void)
 		TIMER_CtrlPWMOutputs(pwm_settings[i].timer, ENABLE);
 	}
 
+    for ( int i = 0 ; i < 4 ; i++)
+    {
+      for ( int z = 0 ; z < sizeof(pwm_settings) / sizeof(pwm_settings[0]) ; z++)
+        {
+          if ( pwm_settings_global[z].motor_id == i )  
+          {
+            pwm_order[i] = z;  
+          }
+        }  
+    }
+    
 }
 
 
@@ -216,7 +296,7 @@ extern int failsafe;
 extern float rx[];
 unsigned long motorbeeptime = 0;
 
-#include "drv_time.h"
+
 
 #ifndef MOTOR_BEEPS_TIMEOUT
 // default value if not defined elsewhere
@@ -226,8 +306,7 @@ unsigned long motorbeeptime = 0;
 #define MOTOR_BEEPS_PWM_ON 0.2
 #define MOTOR_BEEPS_PWM_OFF 0.0
 
-#include  "drv_pwm.h"
-#include <stdlib.h>
+
 void motorbeep( void)
 {
 	if (failsafe)
@@ -273,7 +352,6 @@ void motorbeep( void)
 		motorbeeptime = 0;
 }
 
-#include  <math.h>
 
 void pwm_set(uint8_t number, float pwm)
 {
@@ -286,13 +364,8 @@ void pwm_set(uint8_t number, float pwm)
 
 	pwm = lroundf(pwm);
 
-	for (int i = 0; i < sizeof(pwm_settings) / sizeof(pwm_settings[0]); ++i)
-	{
-		if (pwm_settings[i].motor_id == number)
-			(*pwm_settings[i].chcc) = (uint32_t)pwm;
-		
-	}
-
+    (*pwm_settings_global[pwm_order[number]].chcc) = (uint32_t)pwm;
+    
 }
 
 
