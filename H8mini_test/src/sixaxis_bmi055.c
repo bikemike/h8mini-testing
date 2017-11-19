@@ -140,8 +140,8 @@ void sixaxis_read(sixaxis_readtype read_type)
 	{
 		i2c_readdata(BMI055_ACC_ADDRESS, BMI055_ACCD_X_LSB, data, 6);
 
-		accel[0] = -(float)((int16_t) (((uint16_t)data[1] << 8) + ((uint16_t)data[0]&0xF0))/bmi055_acc_scale);
-		accel[1] = -(float)((int16_t) (((uint16_t)data[3] << 8) + ((uint16_t)data[2]&0xF0))/bmi055_acc_scale);
+		accel[1] = -(float)((int16_t) (((uint16_t)data[1] << 8) + ((uint16_t)data[0]&0xF0))/bmi055_acc_scale);
+		accel[0] =  (float)((int16_t) (((uint16_t)data[3] << 8) + ((uint16_t)data[2]&0xF0))/bmi055_acc_scale);
 		accel[2] =  (float)((int16_t) (((uint16_t)data[5] << 8) + ((uint16_t)data[4]&0xF0))/bmi055_acc_scale);
 
 		// this is the value of both cos 45 and sin 45 = 1/sqrt(2)
@@ -190,9 +190,9 @@ void sixaxis_read(sixaxis_readtype read_type)
 	i2c_readdata(BMI055_GYR_ADDRESS,BMI055_RATE_X_LSB, data+6, 6);
 
 
-	gyronew[1] = (int16_t) ((data[7] << 8) + data[6]);
-	gyronew[0] = (int16_t) ((data[9] << 8) + data[8]);
-	gyronew[2] = (int16_t) ((data[11] << 8) + data[10]);
+	gyronew[0] =  (int16_t) ((data[7] << 8) + data[6]);
+	gyronew[1] = -(int16_t) ((data[9] << 8) + data[8]);
+	gyronew[2] =  (int16_t) ((data[11] << 8) + data[10]);
 
 	gyronew[0] = gyronew[0] - gyrocal[0];
 	gyronew[1] = gyronew[1] - gyrocal[1];
@@ -289,9 +289,9 @@ void gyro_cal(void)
 
 		i2c_readdata(BMI055_GYR_ADDRESS,BMI055_RATE_X_LSB, data, 6);
 
-		gyro[0] = (int16_t) ((data[3] << 8) + data[2]);
-		gyro[1] = (int16_t) ((data[1] << 8) + data[0]);
-		gyro[2] = (int16_t) ((data[5] << 8) + data[4]);
+		gyro[0] =  (int16_t) ((data[1] << 8) + data[0]);
+		gyro[1] = -(int16_t) ((data[3] << 8) + data[2]);
+		gyro[2] =  (int16_t) ((data[5] << 8) + data[4]);
 
 
 #ifdef OLD_LED_FLASH
