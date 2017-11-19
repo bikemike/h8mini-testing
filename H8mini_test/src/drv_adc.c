@@ -2,15 +2,9 @@
 #include "drv_adc.h"
 #include "util.h"
 #include "hardware.h"
+#include "stdio.h"
 
-uint16_t adcarray[10];
-
-/*typedef float(*adc_func)(uint16_t input);
-static float voltage_calc(uint16_t* input)
-{
-	return mapf((float)input, 2727.0, 3050.0, 3.77, 4.22);
-}
-*/
+uint16_t adcarray[4];
 
 struct ADC_SETTINGS
 {
@@ -60,8 +54,11 @@ struct ADC_SETTINGS adc_settings[] =
 void adc_init(void)
 {
 
-	int size = sizeof(adc_settings) / sizeof(adc_settings[0]);
-
+	const int size = sizeof(adc_settings) / sizeof(adc_settings[0]);
+    
+    extern void failloop( int val);
+    if ( size > 4 ) failloop(5); // this should be optimized away
+    
 	for (int i = 0; i < size; ++i)
 	{
 		GPIO_InitPara    GPIO_InitStructure;
@@ -97,9 +94,7 @@ void adc_init(void)
 
 	DMA_Enable(DMA1_CHANNEL1, ENABLE);
 
-	//  ADC_DeInit(&ADC_InitStructure);
 
-	//* FIXME: what does this do?
 	ADC_InitStructure.ADC_Mode_Scan = ENABLE;
 	ADC_InitStructure.ADC_Mode_Continuous = ENABLE;
 	ADC_InitStructure.ADC_Trig_External = ADC_EXTERNAL_TRIGGER_MODE_NONE;
